@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Presensi Guru</title>
+<style>
+  :root{
+    --hijau-tua:#123324;
+    --hijau:#1F4B3B;
+    --hijau-muda:#2F6B52;
+    --emas:#C9A227;
+    --emas-muda:#E4C766;
+    --krem:#FAF6EC;
+    --kertas:#FFFFFF;
+    --tinta:#1B2521;
+    --abu:#6B7770;
+    --garis:#E4DFCF;
+    --merah:#B3402C;
+    --radius:16px;
+    font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--krem);
+    color:var(--tinta);
+    min-height:100vh;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--kertas);box-shadow:0 0 40px rgba(0,0,0,0.06);display:flex;flex-direction:column;}
+
+  /* ---------- HEADER ---------- */
+  header.top{
+    position:relative;
+    background:linear-gradient(160deg, var(--hijau-tua), var(--hijau) 60%, var(--hijau-muda));
+    color:var(--krem);
+    padding:26px 22px 22px;
+    overflow:hidden;
+  }
+  header.top::after{
+    content:"";
+    position:absolute;inset:0;
+    opacity:0.14;
+    background-image:
+      radial-gradient(circle at 20% 20%, transparent 0 8px, var(--emas-muda) 8px 9px, transparent 9px),
+      radial-gradient(circle at 80% 60%, transparent 0 10px, var(--emas-muda) 10px 11px, transparent 11px),
+      repeating-linear-gradient(45deg, transparent 0 18px, rgba(228,199,102,0.5) 18px 19px, transparent 19px 36px),
+      repeating-linear-gradient(-45deg, transparent 0 18px, rgba(228,199,102,0.5) 18px 19px, transparent 19px 36px);
+    pointer-events:none;
+  }
+  .top-inner{position:relative;z-index:1;}
+  .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--emas-muda);font-weight:600;}
+  h1.appname{margin:4px 0 2px;font-size:21px;font-weight:700;line-height:1.25;}
+  .schoolname{font-size:12.5px;color:#CFE3D8;}
+  .clock-row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:16px;}
+  .clock{font-size:28px;font-weight:700;letter-spacing:.02em;font-variant-numeric:tabular-nums;}
+  .dateline{font-size:11.5px;color:#CFE3D8;margin-top:2px;}
+  .geo-pill{font-size:10.5px;background:rgba(255,255,255,0.12);border:1px solid rgba(228,199,102,0.4);padding:5px 10px;border-radius:99px;color:var(--emas-muda);white-space:nowrap;}
+
+  /* ---------- NAV ---------- */
+  nav.tabs{display:flex;border-bottom:1px solid var(--garis);background:var(--kertas);position:sticky;top:0;z-index:5;}
+  nav.tabs button{
+    flex:1;padding:13px 4px;border:none;background:none;font-size:12.5px;font-weight:600;color:var(--abu);cursor:pointer;border-bottom:3px solid transparent;
+  }
+  nav.tabs button.active{color:var(--hijau);border-bottom-color:var(--emas);}
+
+  main{flex:1;padding:20px 20px 34px;}
+  .hide{display:none !important;}
+
+  h2.sect{font-size:15px;margin:0 0 12px;color:var(--hijau-tua);display:flex;align-items:center;gap:8px;}
+  h2.sect .num{width:20px;height:20px;border-radius:50%;background:var(--hijau);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;}
+
+  .card{background:#fff;border:1px solid var(--garis);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--hijau-tua);margin-bottom:6px;}
+  select, input[type=text], input[type=number], input[type=time], input[type=password]{
+    width:100%;padding:11px 12px;border:1.5px solid var(--garis);border-radius:10px;font-size:14.5px;background:#fff;color:var(--tinta);margin-bottom:12px;
+  }
+  select:focus, input:focus{outline:none;border-color:var(--hijau-muda);}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    padding:13px;border-radius:11px;border:none;font-size:14.5px;font-weight:700;cursor:pointer;
+    background:var(--hijau);color:#fff;transition:transform .08s;
+  }
+  .btn:active{transform:scale(0.98);}
+  .btn.gold{background:var(--emas);color:var(--hijau-tua);}
+  .btn.outline{background:none;border:1.5px solid var(--hijau);color:var(--hijau);}
+  .btn.danger{background:var(--merah);color:#fff;}
+  .btn.small{padding:9px 12px;font-size:12.5px;width:auto;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .row{display:flex;gap:10px;}
+  .row > *{flex:1;}
+  .helper{font-size:11.5px;color:var(--abu);margin-top:-6px;margin-bottom:12px;}
+
+  .radio-group{display:flex;gap:10px;margin-bottom:14px;}
+  .radio-opt{flex:1;border:1.5px solid var(--garis);border-radius:11px;padding:12px 10px;text-align:center;font-size:13.5px;font-weight:600;color:var(--abu);cursor:pointer;}
+  .radio-opt.selected{border-color:var(--hijau);color:var(--hijau);background:#F0F6F2;}
+  .radio-opt.disabled{opacity:.4;cursor:not-allowed;}
+
+  video, .cam-frame{width:100%;border-radius:14px;background:#111;}
+  .cam-wrap{position:relative;border-radius:14px;overflow:hidden;margin-bottom:12px;}
+  .cam-wrap::after{
+    content:"";position:absolute;inset:14%;border:2.5px dashed rgba(228,199,102,0.85);border-radius:50%;pointer-events:none;
+  }
+  canvas{display:none;}
+
+  .status-banner{border-radius:12px;padding:11px 13px;font-size:12.5px;font-weight:600;margin-bottom:12px;display:flex;gap:8px;align-items:flex-start;}
+  .status-banner.ok{background:#EAF5EE;color:#1F6B41;}
+  .status-banner.warn{background:#FDF3E4;color:#8A5A10;}
+  .status-banner.err{background:#FCEBE7;color:var(--merah);}
+
+  .result-hero{text-align:center;padding:10px 0 4px;}
+  .result-hero .ring{
+    width:88px;height:88px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;
+    font-size:38px;color:#fff;
+  }
+  .ring.hadir{background:var(--hijau);}
+  .ring.telat{background:#C97A1F;}
+  .ring.pulang{background:var(--hijau-muda);}
+  .result-name{font-size:17px;font-weight:700;margin:2px 0;}
+  .result-meta{font-size:13px;color:var(--abu);margin-bottom:2px;}
+  .badge{display:inline-block;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:700;margin-top:6px;}
+  .badge.hadir{background:#EAF5EE;color:#1F6B41;}
+  .badge.telat{background:#FCF0DE;color:#8A5A10;}
+  .badge.pulang{background:#EAF5EE;color:#1F6B41;}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th,td{padding:9px 7px;border-bottom:1px solid var(--garis);text-align:left;}
+  th{color:var(--abu);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em;}
+  td.status-hadir{color:#1F6B41;font-weight:700;}
+  td.status-telat{color:#C97A1F;font-weight:700;}
+  td.status-pulang{color:var(--hijau-muda);font-weight:700;}
+  .empty-state{text-align:center;padding:30px 10px;color:var(--abu);font-size:13px;}
+  .empty-state .ic{font-size:30px;margin-bottom:8px;}
+
+  .teacher-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--garis);}
+  .teacher-item .avatar-initial{width:38px;height:38px;min-width:38px;border-radius:50%;background:var(--hijau);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+  .teacher-item .ti-name{font-weight:600;font-size:13.5px;flex:1;}
+  .teacher-item .ti-nip{font-size:11px;color:var(--abu);}
+  .teacher-item button{background:none;border:none;color:var(--merah);font-size:12px;cursor:pointer;font-weight:600;}
+
+  .lock-screen{text-align:center;padding:30px 6px;}
+  .lock-screen .ic{font-size:40px;margin-bottom:10px;}
+  .footnote{font-size:10.5px;color:var(--abu);line-height:1.5;margin-top:18px;padding-top:14px;border-top:1px dashed var(--garis);}
+  .toggle-link{background:none;border:none;color:var(--hijau);font-size:12px;font-weight:700;text-decoration:underline;cursor:pointer;padding:0;margin-top:4px;}
+  .divider-label{font-size:11px;font-weight:700;color:var(--abu);text-transform:uppercase;letter-spacing:.06em;margin:20px 0 10px;}
+  .spinner{width:16px;height:16px;border:2.5px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div id="fbWarning" style="display:none;background:#B3402C;color:#fff;font-size:12.5px;font-weight:600;text-align:center;padding:10px 16px;">
+  ⚠️ Server penyimpanan belum dikonfigurasi. Buka file HTML ini, cari <code>APPS_SCRIPT_URL</code> di bagian atas script, isi dengan URL Web App Google Apps Script Anda.
+</div>
+<div class="app">
+
+  <header class="top">
+    <div class="top-inner">
+      <div class="eyebrow">Presensi Kode + Lokasi</div>
+      <h1 class="appname" id="hdrAppName">Presensi Guru</h1>
+      <div class="schoolname" id="hdrSchoolName">SMAIT Al-Uswah Bangil</div>
+      <div class="clock-row">
+        <div>
+          <div class="clock" id="clockNow">--:--:--</div>
+          <div class="dateline" id="dateNow">-</div>
+        </div>
+        <div class="geo-pill" id="geoPill">📍 Lokasi belum dicek</div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button data-tab="absen" class="active">Absen</button>
+    <button data-tab="rekap">Rekap Hari Ini</button>
+    <button data-tab="owner">Owner</button>
+  </nav>
+
+  <main>
+
+    <!-- ===================== TAB ABSEN ===================== -->
+    <section id="tab-absen">
+
+      <div id="absenNoTeacher" class="status-banner warn hide">
+        ⚠️ Belum ada guru yang terdaftar. Hubungi owner/admin sekolah untuk mendaftarkan wajah guru di menu <b>Owner</b>.
+      </div>
+      <div id="absenNoGeo" class="status-banner warn hide">
+        ⚠️ Titik lokasi &amp; radius sekolah belum diatur owner. Absen faceprint belum bisa dijalankan.
+      </div>
+
+      <div id="absenFlow">
+        <h2 class="sect"><span class="num">1</span>Pilih nama Anda</h2>
+        <div class="card">
+          <label for="selTeacher">Nama guru</label>
+          <select id="selTeacher"></select>
+          <div class="helper">Belum menemukan nama Anda? Minta owner mendaftarkan Anda &amp; memberi kode presensi dulu.</div>
+
+          <label>Jenis presensi</label>
+          <div class="radio-group" id="radioJenis">
+            <div class="radio-opt" data-val="masuk">🌅 Absen Masuk</div>
+            <div class="radio-opt" data-val="pulang">🌇 Absen Pulang</div>
+          </div>
+          <div id="alreadyDoneMsg" class="status-banner ok hide">✅ Presensi hari ini untuk guru ini sudah lengkap.</div>
+
+          <button class="btn" id="btnStartVerify">Mulai Presensi</button>
+        </div>
+
+        <div id="camCard" class="card hide">
+          <h2 class="sect"><span class="num">2</span>Verifikasi lokasi &amp; kode presensi</h2>
+          <div id="camStatus" class="status-banner warn">Mengecek lokasi GPS...</div>
+          <div id="codeEntryWrap" class="hide">
+            <label for="codeInput">Kode presensi Anda</label>
+            <input type="password" id="codeInput" inputmode="numeric" placeholder="Masukkan kode presensi">
+          </div>
+          <button class="btn gold" id="btnCapture" disabled>✅ Konfirmasi Kehadiran</button>
+          <button class="btn outline" id="btnCancelCam" style="margin-top:8px;">Batal</button>
+        </div>
+
+        <div id="resultCard" class="card hide">
+          <div class="result-hero">
+            <div class="ring" id="resultRing">✓</div>
+            <div class="result-name" id="resultName">-</div>
+            <div class="result-meta" id="resultMeta">-</div>
+            <span class="badge" id="resultBadge">-</span>
+          </div>
+          <button class="btn outline" id="btnAbsenLagi" style="margin-top:16px;">Kembali</button>
+        </div>
+      </div>
+
+      <div class="footnote">
+        Catatan: presensi diverifikasi lewat kombinasi kode unik pribadi milik guru dan titik GPS — kode saja tidak cukup, harus juga berada di lingkungan sekolah. Kode bersifat rahasia, jangan dibagikan ke orang lain.
+      </div>
+    </section>
+
+    <!-- ===================== TAB REKAP ===================== -->
+    <section id="tab-rekap" class="hide">
+      <h2 class="sect">📋 Rekap presensi hari ini</h2>
+      <div class="card" style="padding:0;">
+        <div id="rekapEmpty" class="empty-state">
+          <div class="ic">🗂️</div>Belum ada presensi hari ini.
+        </div>
+        <table id="rekapTable" class="hide">
+          <thead><tr><th>Guru</th><th>Jenis</th><th>Waktu</th><th>Status</th></tr></thead>
+          <tbody id="rekapBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===================== TAB OWNER ===================== -->
+    <section id="tab-owner" class="hide">
+
+      <div id="ownerLocked">
+        <div class="lock-screen">
+          <div class="ic">🔒</div>
+          <h2 class="sect" style="justify-content:center;">Panel Owner</h2>
+          <div class="card" style="text-align:left;">
+            <label for="pinInput">Masukkan PIN owner</label>
+            <input type="password" id="pinInput" inputmode="numeric" placeholder="••••••">
+            <button class="btn" id="btnUnlock">Masuk</button>
+            <div id="pinError" class="status-banner err hide" style="margin-top:10px;">PIN salah, coba lagi.</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="ownerPanel" class="hide">
+
+        <h2 class="sect">⚙️ Pengaturan aplikasi</h2>
+        <div class="card">
+          <label for="setAppName">Nama aplikasi</label>
+          <input type="text" id="setAppName">
+
+          <label for="setSchoolName">Nama sekolah</label>
+          <input type="text" id="setSchoolName">
+
+          <div class="row">
+            <div>
+              <label for="setWorkStart">Jam masuk</label>
+              <input type="time" id="setWorkStart">
+            </div>
+            <div>
+              <label for="setWorkEnd">Jam pulang</label>
+              <input type="time" id="setWorkEnd">
+            </div>
+          </div>
+
+          <label for="setTolerance">Toleransi keterlambatan (menit)</label>
+          <input type="number" id="setTolerance" min="0" max="120">
+
+          <button class="btn" id="btnSaveSettings">Simpan pengaturan</button>
+        </div>
+
+        <h2 class="sect">📍 Titik &amp; radius sekolah</h2>
+        <div class="card">
+          <div class="helper" style="margin-top:0;">Berdirilah di area sekolah lalu tekan tombol di bawah untuk mengunci titik lokasi presensi.</div>
+          <button class="btn outline" id="btnUseMyLoc">Gunakan lokasi saya sekarang</button>
+          <div id="locSetStatus" class="status-banner ok hide" style="margin-top:10px;"></div>
+
+          <label for="setRadius" style="margin-top:14px;">Radius area sekolah (meter)</label>
+          <input type="number" id="setRadius" min="20" max="2000">
+          <button class="btn" id="btnSaveGeo">Simpan lokasi</button>
+        </div>
+
+        <h2 class="sect">👤 Kelola data guru</h2>
+        <div class="card">
+          <div id="teacherList"></div>
+          <div class="divider-label">Tambah guru baru</div>
+          <label for="newTeacherName">Nama guru</label>
+          <input type="text" id="newTeacherName" placeholder="Contoh: Ahmad Fauzan, S.Pd.">
+          <label for="newTeacherNip">NIP / kode pegawai (opsional)</label>
+          <input type="text" id="newTeacherNip">
+          <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:12px;">
+            <input type="checkbox" id="consentCheck" style="width:auto;margin:3px 0 0;">
+            <label for="consentCheck" style="margin:0;font-weight:400;font-size:12px;color:var(--abu);">Guru yang bersangkutan telah diberi tahu dan menyetujui pembuatan kode presensi pribadi ini.</label>
+          </div>
+          <button class="btn gold" id="btnEnrollFace">🔑 Buat Kode Presensi Guru Ini</button>
+          <div id="enrollStatus" class="status-banner ok hide" style="margin-top:10px;"></div>
+          <div class="helper" style="margin-top:8px;">Kode hanya ditampilkan sekali saat dibuat — segera catat dan berikan langsung ke guru yang bersangkutan secara pribadi (jangan lewat grup).</div>
+        </div>
+
+        <h2 class="sect">📊 Rekap &amp; ekspor data</h2>
+        <div class="card">
+          <div class="helper" style="margin-top:0;">Total data presensi tersimpan: <b id="totalLog">0</b> baris.</div>
+          <button class="btn outline" id="btnExportCsv">⬇️ Unduh rekap (CSV)</button>
+
+          <div class="divider-label">Retensi data (hapus rekap lama)</div>
+          <label for="setRetention">Simpan rekap presensi selama (hari)</label>
+          <input type="number" id="setRetention" min="7" max="730">
+          <button class="btn outline" id="btnPurgeOld">🧹 Hapus rekap yang lebih lama dari batas ini</button>
+        </div>
+
+        <h2 class="sect">🔐 Privasi &amp; keamanan</h2>
+        <div class="card">
+          <div class="helper" style="margin-top:0;line-height:1.6;">
+            • Kode presensi setiap guru disimpan dalam bentuk terenkripsi (hash), bukan teks biasa — tidak bisa dilihat ulang setelah dibuat, hanya bisa di-reset.<br>
+            • PIN owner juga disimpan dalam bentuk terenkripsi (hash).<br>
+            • Presensi hanya sah bila kode benar <b>dan</b> lokasi berada dalam radius sekolah — kode saja tidak cukup.<br>
+            • Karena aplikasi ini berjalan tanpa server/login terpisah, siapa pun yang memegang link berpotensi bisa membuka aplikasi ini. Jangan sebarkan link ke luar lingkungan sekolah, dan gunakan opsi <b>Share</b> (bukan Publish ke publik) bila tersedia.<br>
+            • Ingatkan guru untuk menjaga kerahasiaan kode presensi masing-masing, seperti menjaga PIN ATM.
+          </div>
+        </div>
+
+        <h2 class="sect">🔑 Keamanan</h2>
+        <div class="card">
+          <label for="newPin">Ganti PIN owner</label>
+          <input type="password" id="newPin" inputmode="numeric" placeholder="PIN baru (min 4 digit)">
+          <button class="btn outline" id="btnChangePin">Simpan PIN baru</button>
+        </div>
+
+        <div class="card">
+          <button class="btn danger" id="btnResetAll">🗑️ Reset semua data</button>
+        </div>
+
+        <button class="toggle-link" id="btnLockAgain">Kunci panel owner</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     PENYIMPANAN DATA (shared antar perangkat lewat window.storage)
+     ============================================================ */
+  const KEY_SETTINGS = "faceprint:settings";
+  const KEY_TEACHERS = "faceprint:teachers";
+  const KEY_LOG = "faceprint:attendance-log";
+
+  const DEFAULT_SETTINGS = {
+    appName: "Presensi Guru SMAIT Al-Uswah Bangil",
+    schoolName: "SMAIT Al-Uswah Bangil",
+    pinHash: "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92", // hash dari "123456"
+    workStart: "07:00",
+    workEnd: "15:00",
+    tolerance: 15,
+    lat: null,
+    lng: null,
+    radius: 150,
+    retentionDays: 90
+  };
+
+  async function sha256Hex(text){
+    const enc = new TextEncoder().encode(text);
+    const buf = await crypto.subtle.digest("SHA-256", enc);
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+  }
+
+  let settings = { ...DEFAULT_SETTINGS };
+  let teachers = [];       // {id, name, nip, codeHash}
+  let logs = [];           // {id, teacherId, teacherName, type, time(iso), dateKey, status}
+  let ownerUnlocked = false;
+
+  /* ---- KONFIGURASI GOOGLE APPS SCRIPT ----
+     Ganti URL di bawah ini dengan URL Web App hasil deploy Google Apps Script
+     Anda sendiri (lihat panduan "panduan-github-sheets.md"). Aplikasi tidak akan
+     menyimpan data apa pun sebelum bagian ini diisi. */
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwIQAFzD3ktpv8FTQkBYNY2w-GYJJsfX6QspiXRYgnFRiJty5DJChOKO0yeOomA2kSw_g/exec";
+
+  const backendReady = APPS_SCRIPT_URL.indexOf("GANTI_DENGAN") === -1;
+  if(!backendReady){
+    document.getElementById("fbWarning").style.display = "block";
+  }
+
+  async function storageGet(key, fallback){
+    if(!backendReady) return fallback;
+    try{
+      const res = await fetch(APPS_SCRIPT_URL + "?key=" + encodeURIComponent(key));
+      const data = await res.json();
+      if(data.value === null || data.value === undefined || data.value === "") return fallback;
+      return JSON.parse(data.value);
+    }catch(e){ console.error("storage get error", e); return fallback; }
+  }
+  async function storageSet(key, value){
+    if(!backendReady) return;
+    try{
+      await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" }, // hindari CORS preflight ke Apps Script
+        body: JSON.stringify({ key, value: JSON.stringify(value) })
+      });
+    }catch(e){ console.error("storage set error", e); }
+  }
+
+  async function loadAll(){
+    settings = await storageGet(KEY_SETTINGS, DEFAULT_SETTINGS);
+    teachers = await storageGet(KEY_TEACHERS, []);
+    logs = await storageGet(KEY_LOG, []);
+  }
+
+  // Google Sheets tidak mendukung dorongan realtime seperti Firestore, jadi kita
+  // memakai polling ringan: cek data terbaru tiap beberapa detik agar antar HP
+  // tetap tersinkron (nyaris realtime, cukup untuk kebutuhan presensi).
+  function startPolling(){
+    if(!backendReady) return;
+    setInterval(async ()=>{
+      const [s, t, l] = await Promise.all([
+        storageGet(KEY_SETTINGS, settings),
+        storageGet(KEY_TEACHERS, teachers),
+        storageGet(KEY_LOG, logs)
+      ]);
+      settings = s; teachers = t; logs = l;
+      renderHeader();
+      renderTeacherSelect();
+      renderRekap();
+      if(ownerUnlocked){ renderTeacherList(); document.getElementById("totalLog").textContent = logs.length; }
+    }, 10000);
+  }
+
+  /* ============================================================
+     UTIL
+     ============================================================ */
+  function todayKey(d){ d = d || new Date(); return d.toISOString().slice(0,10); }
+  function pad(n){ return n<10 ? "0"+n : ""+n; }
+  function fmtTime(d){ return pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds()); }
+  function fmtDateLong(d){
+    const hari=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+    const bulan=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+    return hari[d.getDay()]+", "+d.getDate()+" "+bulan[d.getMonth()]+" "+d.getFullYear();
+  }
+  function haversine(lat1,lon1,lat2,lon2){
+    const R=6371000, toRad=x=>x*Math.PI/180;
+    const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+    const a=Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+    return R * 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+  /* ============================================================
+     JAM DINDING
+     ============================================================ */
+  function tickClock(){
+    const now = new Date();
+    document.getElementById("clockNow").textContent = fmtTime(now);
+    document.getElementById("dateNow").textContent = fmtDateLong(now);
+  }
+  setInterval(tickClock, 1000);
+
+  /* ============================================================
+     RENDER HEADER & TABS
+     ============================================================ */
+  function renderHeader(){
+    document.getElementById("hdrAppName").textContent = settings.appName;
+    document.getElementById("hdrSchoolName").textContent = settings.schoolName;
+  }
+
+  document.querySelectorAll("nav.tabs button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      ["absen","rekap","owner"].forEach(t=>{
+        document.getElementById("tab-"+t).classList.toggle("hide", t!==btn.dataset.tab);
+      });
+      if(btn.dataset.tab==="rekap") renderRekap();
+      if(btn.dataset.tab==="owner") renderOwnerEntry();
+    });
+  });
+
+  /* ============================================================
+     GEOLOKASI GLOBAL (dicek saat load, dipakai tab absen)
+     ============================================================ */
+  let lastGeo = null; // {lat,lng,accuracy}
+  function checkGeo(){
+    return new Promise((resolve)=>{
+      if(!navigator.geolocation){ resolve(null); return; }
+      navigator.geolocation.getCurrentPosition(
+        pos=>{
+          lastGeo = {lat:pos.coords.latitude, lng:pos.coords.longitude, accuracy:pos.coords.accuracy};
+          resolve(lastGeo);
+        },
+        ()=>resolve(null),
+        {enableHighAccuracy:true, timeout:10000}
+      );
+    });
+  }
+  async function refreshGeoPill(){
+    const pill = document.getElementById("geoPill");
+    pill.textContent = "📍 Mengecek lokasi...";
+    const geo = await checkGeo();
+    if(!geo){ pill.textContent = "📍 GPS tidak tersedia"; return; }
+    if(settings.lat==null){ pill.textContent = "📍 Radius sekolah belum diatur"; return; }
+    const dist = Math.round(haversine(geo.lat, geo.lng, settings.lat, settings.lng));
+    if(dist <= settings.radius){ pill.textContent = "📍 Di area sekolah ("+dist+" m)"; }
+    else{ pill.textContent = "📍 Di luar area sekolah ("+dist+" m)"; }
+  }
+
+  /* ============================================================
+     TAB ABSEN — pilih guru & jenis
+     ============================================================ */
+  let selectedTeacherId = null;
+  let selectedJenis = null;
+
+  function renderTeacherSelect(){
+    const sel = document.getElementById("selTeacher");
+    sel.innerHTML = "";
+    if(teachers.length===0){
+      document.getElementById("absenNoTeacher").classList.remove("hide");
+      document.getElementById("absenFlow").classList.add("hide");
+      return;
+    }
+    document.getElementById("absenNoTeacher").classList.add("hide");
+    document.getElementById("absenFlow").classList.remove("hide");
+    teachers.forEach(t=>{
+      const opt = document.createElement("option");
+      opt.value = t.id; opt.textContent = t.name;
+      sel.appendChild(opt);
+    });
+    selectedTeacherId = sel.value;
+    refreshJenisOptions();
+  }
+  document.getElementById("selTeacher").addEventListener("change", e=>{
+    selectedTeacherId = e.target.value;
+    refreshJenisOptions();
+  });
+
+  function todaysRecordsFor(teacherId){
+    const dk = todayKey();
+    return logs.filter(l=>l.teacherId===teacherId && l.dateKey===dk);
+  }
+
+  function refreshJenisOptions(){
+    const recs = todaysRecordsFor(selectedTeacherId);
+    const hasMasuk = recs.some(r=>r.type==="masuk");
+    const hasPulang = recs.some(r=>r.type==="pulang");
+    const opts = document.querySelectorAll("#radioJenis .radio-opt");
+    opts.forEach(o=>{
+      o.classList.remove("selected","disabled");
+      if(o.dataset.val==="masuk" && hasMasuk) o.classList.add("disabled");
+      if(o.dataset.val==="pulang" && hasPulang) o.classList.add("disabled");
+    });
+    selectedJenis = null;
+    document.getElementById("btnStartVerify").disabled = false;
+    if(hasMasuk && hasPulang){
+      document.getElementById("alreadyDoneMsg").classList.remove("hide");
+      document.getElementById("btnStartVerify").disabled = true;
+    } else {
+      document.getElementById("alreadyDoneMsg").classList.add("hide");
+      // auto pilih opsi yang tersedia
+      if(!hasMasuk){ selectedJenis="masuk"; }
+      else if(!hasPulang){ selectedJenis="pulang"; }
+      opts.forEach(o=>{ if(o.dataset.val===selectedJenis) o.classList.add("selected"); });
+    }
+  }
+  document.querySelectorAll("#radioJenis .radio-opt").forEach(o=>{
+    o.addEventListener("click", ()=>{
+      if(o.classList.contains("disabled")) return;
+      document.querySelectorAll("#radioJenis .radio-opt").forEach(x=>x.classList.remove("selected"));
+      o.classList.add("selected");
+      selectedJenis = o.dataset.val;
+    });
+  });
+
+  /* ============================================================
+     VERIFIKASI PRESENSI: KODE UNIK GURU + LOKASI GPS
+     ============================================================ */
+
+  /* ---- alur verifikasi absen ---- */
+  document.getElementById("btnStartVerify").addEventListener("click", async ()=>{
+    if(!selectedTeacherId || !selectedJenis) return;
+    document.getElementById("camCard").classList.remove("hide");
+    document.getElementById("resultCard").classList.add("hide");
+    document.getElementById("codeEntryWrap").classList.add("hide");
+    document.getElementById("codeInput").value = "";
+    const camStatus = document.getElementById("camStatus");
+    const btnCapture = document.getElementById("btnCapture");
+    btnCapture.disabled = true;
+    camStatus.className = "status-banner warn";
+    camStatus.textContent = "Mengecek lokasi GPS...";
+
+    const geo = await checkGeo();
+    if(!geo){
+      camStatus.className = "status-banner err";
+      camStatus.textContent = "❌ Tidak bisa mengakses lokasi GPS. Aktifkan izin lokasi lalu coba lagi.";
+      return;
+    }
+    if(settings.lat==null){
+      camStatus.className = "status-banner err";
+      camStatus.textContent = "❌ Titik lokasi sekolah belum diatur owner.";
+      return;
+    }
+    const dist = Math.round(haversine(geo.lat, geo.lng, settings.lat, settings.lng));
+    if(dist > settings.radius){
+      camStatus.className = "status-banner err";
+      camStatus.textContent = "❌ Anda berada "+dist+" m dari sekolah (batas "+settings.radius+" m). Presensi hanya bisa dilakukan di lingkungan sekolah.";
+      return;
+    }
+    camStatus.className = "status-banner ok";
+    camStatus.textContent = "✅ Lokasi terverifikasi ("+dist+" m dari titik sekolah). Masukkan kode presensi Anda.";
+    document.getElementById("codeEntryWrap").classList.remove("hide");
+    btnCapture.disabled = false;
+    btnCapture.dataset.dist = dist;
+    document.getElementById("codeInput").focus();
+  });
+
+  document.getElementById("btnCancelCam").addEventListener("click", ()=>{
+    document.getElementById("camCard").classList.add("hide");
+  });
+
+  document.getElementById("btnCapture").addEventListener("click", async ()=>{
+    const btnCapture = document.getElementById("btnCapture");
+    const camStatus = document.getElementById("camStatus");
+    const codeVal = document.getElementById("codeInput").value.trim();
+    if(!codeVal){
+      camStatus.className = "status-banner err";
+      camStatus.textContent = "❌ Masukkan kode presensi Anda terlebih dahulu.";
+      return;
+    }
+    btnCapture.disabled = true;
+    btnCapture.innerHTML = '<span class="spinner"></span> Memeriksa kode...';
+
+    const teacher = teachers.find(t=>t.id===selectedTeacherId);
+    const hash = await sha256Hex(codeVal);
+
+    if(hash !== teacher.codeHash){
+      camStatus.className = "status-banner err";
+      camStatus.textContent = "❌ Kode presensi salah. Coba lagi, atau hubungi owner bila lupa kode.";
+      btnCapture.disabled = false; btnCapture.textContent = "✅ Konfirmasi Kehadiran";
+      return;
+    }
+
+    // sukses -> catat presensi
+    const now = new Date();
+    let status;
+    if(selectedJenis==="masuk"){
+      const [h,m] = settings.workStart.split(":").map(Number);
+      const batas = new Date(now); batas.setHours(h, m + Number(settings.tolerance||0), 0, 0);
+      status = now > batas ? "Terlambat" : "Hadir";
+    } else {
+      const [h,m] = settings.workEnd.split(":").map(Number);
+      const batas = new Date(now); batas.setHours(h, m, 0, 0);
+      status = now < batas ? "Pulang Cepat" : "Pulang";
+    }
+
+    const rec = {
+      id: uid(), teacherId: teacher.id, teacherName: teacher.name,
+      type: selectedJenis, time: now.toISOString(), dateKey: todayKey(now),
+      status, distanceMeters: Number(btnCapture.dataset.dist||0)
+    };
+    logs.push(rec);
+    await storageSet(KEY_LOG, logs);
+
+    showResult(rec);
+    btnCapture.textContent = "✅ Konfirmasi Kehadiran";
+  });
+
+  function showResult(rec){
+    document.getElementById("camCard").classList.add("hide");
+    document.getElementById("resultCard").classList.remove("hide");
+    const ring = document.getElementById("resultRing");
+    const badge = document.getElementById("resultBadge");
+    let cls = "hadir", label = "Hadir", icon="✓";
+    if(rec.status==="Terlambat"){ cls="telat"; label="Terlambat"; icon="⏰"; }
+    else if(rec.status==="Pulang" || rec.status==="Pulang Cepat"){ cls="pulang"; label=rec.status; icon="👋"; }
+    ring.className = "ring "+cls; ring.textContent = icon;
+    badge.className = "badge "+cls; badge.textContent = label;
+    document.getElementById("resultName").textContent = rec.teacherName;
+    const d = new Date(rec.time);
+    document.getElementById("resultMeta").textContent =
+      (rec.type==="masuk" ? "Absen Masuk" : "Absen Pulang") + " • " + fmtTime(d) + " • " + fmtDateLong(d);
+    refreshGeoPill();
+  }
+
+  document.getElementById("btnAbsenLagi").addEventListener("click", ()=>{
+    document.getElementById("resultCard").classList.add("hide");
+    renderTeacherSelect();
+  });
+
+  /* ============================================================
+     TAB REKAP HARI INI
+     ============================================================ */
+  function renderRekap(){
+    const dk = todayKey();
+    const today = logs.filter(l=>l.dateKey===dk).sort((a,b)=> new Date(b.time)-new Date(a.time));
+    const empty = document.getElementById("rekapEmpty");
+    const table = document.getElementById("rekapTable");
+    const body = document.getElementById("rekapBody");
+    if(today.length===0){ empty.classList.remove("hide"); table.classList.add("hide"); return; }
+    empty.classList.add("hide"); table.classList.remove("hide");
+    body.innerHTML = "";
+    today.forEach(r=>{
+      const tr = document.createElement("tr");
+      const statusClass = r.status==="Terlambat" ? "status-telat" : (r.status.startsWith("Pulang") ? "status-pulang" : "status-hadir");
+      tr.innerHTML = `<td>${r.teacherName}</td><td>${r.type==="masuk"?"Masuk":"Pulang"}</td><td>${fmtTime(new Date(r.time))}</td><td class="${statusClass}">${r.status}</td>`;
+      body.appendChild(tr);
+    });
+  }
+
+  /* ============================================================
+     TAB OWNER
+     ============================================================ */
+  function renderOwnerEntry(){
+    document.getElementById("ownerLocked").classList.toggle("hide", ownerUnlocked);
+    document.getElementById("ownerPanel").classList.toggle("hide", !ownerUnlocked);
+    if(ownerUnlocked) fillOwnerForm();
+  }
+  let pinAttempts = 0;
+  let pinLockUntil = 0;
+  document.getElementById("btnUnlock").addEventListener("click", async ()=>{
+    const btn = document.getElementById("btnUnlock");
+    if(Date.now() < pinLockUntil){
+      const sisa = Math.ceil((pinLockUntil - Date.now())/1000);
+      alertBanner("pinError", "Terlalu banyak percobaan salah. Coba lagi dalam "+sisa+" detik.", false);
+      return;
+    }
+    const val = document.getElementById("pinInput").value;
+    const hash = await sha256Hex(val);
+    if(hash === settings.pinHash){
+      ownerUnlocked = true;
+      pinAttempts = 0;
+      document.getElementById("pinError").classList.add("hide");
+      renderOwnerEntry();
+    } else {
+      pinAttempts++;
+      if(pinAttempts >= 5){
+        pinLockUntil = Date.now() + 60000;
+        pinAttempts = 0;
+        alertBanner("pinError", "Terlalu banyak percobaan salah. Coba lagi dalam 60 detik.", false);
+      } else {
+        alertBanner("pinError", "PIN salah, coba lagi.", false);
+      }
+    }
+  });
+  document.getElementById("btnLockAgain").addEventListener("click", ()=>{
+    ownerUnlocked = false;
+    document.getElementById("pinInput").value = "";
+    renderOwnerEntry();
+  });
+
+  function fillOwnerForm(){
+    document.getElementById("setAppName").value = settings.appName;
+    document.getElementById("setSchoolName").value = settings.schoolName;
+    document.getElementById("setWorkStart").value = settings.workStart;
+    document.getElementById("setWorkEnd").value = settings.workEnd;
+    document.getElementById("setTolerance").value = settings.tolerance;
+    document.getElementById("setRadius").value = settings.radius;
+    document.getElementById("setRetention").value = settings.retentionDays || 90;
+    document.getElementById("totalLog").textContent = logs.length;
+    renderTeacherList();
+    const locStatus = document.getElementById("locSetStatus");
+    if(settings.lat!=null){
+      locStatus.classList.remove("hide");
+      locStatus.textContent = "Titik tersimpan: "+settings.lat.toFixed(6)+", "+settings.lng.toFixed(6);
+    }
+  }
+
+  document.getElementById("btnSaveSettings").addEventListener("click", async ()=>{
+    settings.appName = document.getElementById("setAppName").value.trim() || DEFAULT_SETTINGS.appName;
+    settings.schoolName = document.getElementById("setSchoolName").value.trim() || DEFAULT_SETTINGS.schoolName;
+    settings.workStart = document.getElementById("setWorkStart").value || DEFAULT_SETTINGS.workStart;
+    settings.workEnd = document.getElementById("setWorkEnd").value || DEFAULT_SETTINGS.workEnd;
+    settings.tolerance = Number(document.getElementById("setTolerance").value || 0);
+    await storageSet(KEY_SETTINGS, settings);
+    renderHeader();
+    alertBanner("locSetStatus", "Pengaturan aplikasi tersimpan.", true);
+  });
+
+  document.getElementById("btnUseMyLoc").addEventListener("click", async ()=>{
+    const geo = await checkGeo();
+    const box = document.getElementById("locSetStatus");
+    box.classList.remove("hide");
+    if(!geo){ box.className="status-banner err"; box.textContent="Gagal mengambil lokasi. Aktifkan izin GPS."; return; }
+    settings.lat = geo.lat; settings.lng = geo.lng;
+    box.className="status-banner ok";
+    box.textContent = "Titik diambil: "+geo.lat.toFixed(6)+", "+geo.lng.toFixed(6)+" (akurasi ~"+Math.round(geo.accuracy)+" m). Tekan 'Simpan lokasi' untuk mengunci.";
+  });
+  document.getElementById("btnSaveGeo").addEventListener("click", async ()=>{
+    settings.radius = Number(document.getElementById("setRadius").value || DEFAULT_SETTINGS.radius);
+    await storageSet(KEY_SETTINGS, settings);
+    alertBanner("locSetStatus", "Lokasi & radius sekolah tersimpan.", true);
+  });
+
+  function alertBanner(id, text, ok){
+    const el = document.getElementById(id);
+    el.classList.remove("hide");
+    el.className = "status-banner " + (ok?"ok":"err");
+    el.textContent = text;
+  }
+
+  /* ---- kelola guru ---- */
+  function renderTeacherList(){
+    const wrap = document.getElementById("teacherList");
+    wrap.innerHTML = "";
+    if(teachers.length===0){
+      wrap.innerHTML = '<div class="helper" style="margin:0 0 8px;">Belum ada guru terdaftar.</div>';
+      return;
+    }
+    teachers.forEach(t=>{
+      const div = document.createElement("div");
+      div.className = "teacher-item";
+      const initials = t.name.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+      div.innerHTML = `<div class="avatar-initial">${initials}</div><div class="ti-name">${t.name}<div class="ti-nip">${t.nip||""}</div></div><button data-reset="${t.id}" style="color:var(--hijau);margin-right:10px;">Reset Kode</button><button data-id="${t.id}">Hapus</button>`;
+      wrap.appendChild(div);
+    });
+    wrap.querySelectorAll("button[data-reset]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        if(!confirm("Buat kode presensi baru untuk guru ini? Kode lama tidak akan berlaku lagi.")) return;
+        resetTeacherCode(btn.dataset.reset);
+      });
+    });
+    wrap.querySelectorAll("button[data-id]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        if(!confirm("Hapus data guru ini beserta datanya?")) return;
+        teachers = teachers.filter(t=>t.id!==btn.dataset.id);
+        await storageSet(KEY_TEACHERS, teachers);
+        renderTeacherList();
+        renderTeacherSelect();
+      });
+    });
+  }
+
+  document.getElementById("btnEnrollFace").addEventListener("click", async ()=>{
+    const name = document.getElementById("newTeacherName").value.trim();
+    if(!name){ alertBanner("enrollStatus", "Isi nama guru terlebih dahulu.", false); return; }
+    if(!document.getElementById("consentCheck").checked){
+      alertBanner("enrollStatus", "Centang dulu kotak persetujuan sebelum melanjutkan.", false);
+      return;
+    }
+
+    const code = String(Math.floor(100000 + Math.random()*900000)); // kode 6 digit acak
+    const codeHash = await sha256Hex(code);
+
+    teachers.push({
+      id: uid(),
+      name,
+      nip: document.getElementById("newTeacherNip").value.trim(),
+      codeHash
+    });
+    await storageSet(KEY_TEACHERS, teachers);
+    document.getElementById("newTeacherName").value = "";
+    document.getElementById("newTeacherNip").value = "";
+    document.getElementById("consentCheck").checked = false;
+    renderTeacherList();
+    renderTeacherSelect();
+    alertBanner("enrollStatus", "Guru "+name+" berhasil ditambahkan. Kode presensinya: "+code+" — catat/foto sekarang, kode ini tidak akan ditampilkan lagi.", true);
+  });
+
+  async function resetTeacherCode(teacherId){
+    const teacher = teachers.find(t=>t.id===teacherId);
+    if(!teacher) return;
+    const code = String(Math.floor(100000 + Math.random()*900000));
+    teacher.codeHash = await sha256Hex(code);
+    await storageSet(KEY_TEACHERS, teachers);
+    alertBanner("enrollStatus", "Kode baru untuk "+teacher.name+": "+code+" — catat sekarang, tidak akan ditampilkan lagi.", true);
+  }
+
+  /* ---- ekspor CSV ---- */
+  document.getElementById("btnExportCsv").addEventListener("click", ()=>{
+    let csv = "Nama Guru,Jenis,Tanggal,Waktu,Status,Jarak(meter)\n";
+    logs.forEach(r=>{
+      const d = new Date(r.time);
+      csv += `"${r.teacherName}",${r.type==="masuk"?"Masuk":"Pulang"},${r.dateKey},${fmtTime(d)},${r.status},${r.distanceMeters||""}\n`;
+    });
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "rekap-presensi-"+todayKey()+".csv";
+    a.click();
+  });
+
+  document.getElementById("btnPurgeOld").addEventListener("click", async ()=>{
+    const days = Number(document.getElementById("setRetention").value || 90);
+    settings.retentionDays = days;
+    const batasWaktu = Date.now() - days*24*60*60*1000;
+    const sebelum = logs.length;
+    logs = logs.filter(l=> new Date(l.time).getTime() >= batasWaktu);
+    const dihapus = sebelum - logs.length;
+    await storageSet(KEY_LOG, logs);
+    await storageSet(KEY_SETTINGS, settings);
+    document.getElementById("totalLog").textContent = logs.length;
+    alert(dihapus > 0 ? dihapus+" baris rekap lama berhasil dihapus." : "Tidak ada rekap yang lebih lama dari batas ini.");
+  });
+
+  /* ---- ganti PIN & reset ---- */
+  document.getElementById("btnChangePin").addEventListener("click", async ()=>{
+    const val = document.getElementById("newPin").value;
+    if(val.length < 4){ alert("PIN minimal 4 digit."); return; }
+    settings.pinHash = await sha256Hex(val);
+    await storageSet(KEY_SETTINGS, settings);
+    document.getElementById("newPin").value = "";
+    alert("PIN owner berhasil diganti.");
+  });
+  document.getElementById("btnResetAll").addEventListener("click", async ()=>{
+    if(!confirm("Yakin menghapus SEMUA data (pengaturan, guru, rekap)? Tindakan ini tidak bisa dibatalkan.")) return;
+    settings = { ...DEFAULT_SETTINGS };
+    teachers = [];
+    logs = [];
+    await storageSet(KEY_SETTINGS, settings);
+    await storageSet(KEY_TEACHERS, teachers);
+    await storageSet(KEY_LOG, logs);
+    ownerUnlocked = false;
+    renderHeader(); renderTeacherSelect(); renderRekap(); renderOwnerEntry();
+    alert("Semua data telah direset ke pengaturan awal.");
+  });
+
+  /* ============================================================
+     INIT
+     ============================================================ */
+  async function init(){
+    await loadAll();
+    renderHeader();
+    tickClock();
+    renderTeacherSelect();
+    refreshGeoPill();
+    if(settings.lat==null){
+      document.getElementById("absenNoGeo").classList.remove("hide");
+    }
+    startPolling();
+  }
+  init();
+
+})();
+</script>
+</body>
+</html>
