@@ -395,7 +395,7 @@
      Ganti URL di bawah ini dengan URL Web App hasil deploy Google Apps Script
      Anda sendiri (lihat panduan "panduan-github-sheets.md"). Aplikasi tidak akan
      menyimpan data apa pun sebelum bagian ini diisi. */
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwIQAFzD3ktpv8FTQkBYNY2w-GYJJsfX6QspiXRYgnFRiJty5DJChOKO0yeOomA2kSw_g/exec";
+  const APPS_SCRIPT_URL = "GANTI_DENGAN_URL_WEB_APP_ANDA";
 
   const backendReady = APPS_SCRIPT_URL.indexOf("GANTI_DENGAN") === -1;
   if(!backendReady){
@@ -450,7 +450,12 @@
   /* ============================================================
      UTIL
      ============================================================ */
-  function todayKey(d){ d = d || new Date(); return d.toISOString().slice(0,10); }
+  function todayKey(d){
+    d = d || new Date();
+    // PENTING: pakai komponen tanggal lokal (WIB), bukan toISOString() yang berbasis UTC —
+    // kalau pakai UTC, "hari baru" baru dianggap mulai jam 07:00 WIB (karena WIB = UTC+7).
+    return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate());
+  }
   function pad(n){ return n<10 ? "0"+n : ""+n; }
   function fmtTime(d){ return pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds()); }
   function fmtDateLong(d){
