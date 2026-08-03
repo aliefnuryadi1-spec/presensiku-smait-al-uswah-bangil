@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Presensi Guru</title>
 <style>
   :root{
@@ -334,7 +337,8 @@
             • PIN owner juga disimpan dalam bentuk terenkripsi (hash).<br>
             • Presensi hanya sah bila kode benar <b>dan</b> lokasi berada dalam radius sekolah — kode saja tidak cukup.<br>
             • Karena aplikasi ini berjalan tanpa server/login terpisah, siapa pun yang memegang link berpotensi bisa membuka aplikasi ini. Jangan sebarkan link ke luar lingkungan sekolah, dan gunakan opsi <b>Share</b> (bukan Publish ke publik) bila tersedia.<br>
-            • Ingatkan guru untuk menjaga kerahasiaan kode presensi masing-masing, seperti menjaga PIN ATM.
+            • Ingatkan guru untuk menjaga kerahasiaan kode presensi masing-masing, seperti menjaga PIN ATM.<br>
+            • <b>Versi aplikasi: v2026.08.03-wib</b> — seluruh perhitungan hari &amp; jam dikunci ke WIB (UTC+7), tidak lagi mengikuti setelan jam/zona waktu HP masing-masing guru.
           </div>
         </div>
 
@@ -450,18 +454,39 @@
   /* ============================================================
      UTIL
      ============================================================ */
-  function todayKey(d){
-    d = d || new Date();
-    // PENTING: pakai komponen tanggal lokal (WIB), bukan toISOString() yang berbasis UTC —
-    // kalau pakai UTC, "hari baru" baru dianggap mulai jam 07:00 WIB (karena WIB = UTC+7).
-    return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate());
-  }
   function pad(n){ return n<10 ? "0"+n : ""+n; }
-  function fmtTime(d){ return pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds()); }
+
+  /* ---- KUNCI ZONA WAKTU KE WIB (UTC+7) ------------------------------------
+     BUG LAMA: seluruh perhitungan "hari ini" & jam memakai waktu lokal PERANGKAT.
+     Bila jam/zona waktu HP guru tidak diset Asia/Jakarta (mis. masih GMT+0 /
+     otomatis-jaringan yang meleset), maka sebelum pukul 07.00 WIB perangkat masih
+     menganggap hari ini = KEMARIN. Akibatnya presensi kemarin (masuk + pulang)
+     terbaca sebagai presensi hari ini -> muncul "presensi sudah lengkap" dan guru
+     TIDAK BISA ABSEN sampai jam 07.00. Persis di jam 07.00 WIB tanggal UTC berganti
+     sehingga aplikasi "sembuh sendiri".
+     PERBAIKAN: semua tanggal & jam dihitung dari epoch UTC + 7 jam, lalu dibaca
+     dengan getUTC*(), sehingga hasilnya SELALU WIB apa pun setelan HP guru. */
+  const WIB_OFFSET_MS = 7*60*60*1000;
+  function wib(d){
+    const base = (d instanceof Date) ? d : (d ? new Date(d) : new Date());
+    return new Date(base.getTime() + WIB_OFFSET_MS);
+  }
+  function todayKey(d){
+    const w = wib(d);
+    return w.getUTCFullYear() + "-" + pad(w.getUTCMonth()+1) + "-" + pad(w.getUTCDate());
+  }
+  // Kunci tanggal sebuah record dihitung ULANG dari stempel waktu aslinya (bukan
+  // dari field dateKey lama yang mungkin dibuat versi aplikasi terdahulu).
+  function recDateKey(r){ return r && r.time ? todayKey(new Date(r.time)) : (r ? r.dateKey : ""); }
+  // Menit ke-berapa dalam sehari, menurut WIB.
+  function wibMinutes(d){ const w = wib(d); return w.getUTCHours()*60 + w.getUTCMinutes(); }
+  function fmtTime(d){ const w = wib(d); return pad(w.getUTCHours())+":"+pad(w.getUTCMinutes())+":"+pad(w.getUTCSeconds()); }
+  function fmtHM(d){ const w = wib(d); return pad(w.getUTCHours())+"."+pad(w.getUTCMinutes()); }
   function fmtDateLong(d){
+    const w = wib(d);
     const hari=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
     const bulan=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
-    return hari[d.getDay()]+", "+d.getDate()+" "+bulan[d.getMonth()]+" "+d.getFullYear();
+    return hari[w.getUTCDay()]+", "+w.getUTCDate()+" "+bulan[w.getUTCMonth()]+" "+w.getUTCFullYear();
   }
   function haversine(lat1,lon1,lat2,lon2){
     const R=6371000, toRad=x=>x*Math.PI/180;
@@ -477,7 +502,7 @@
   function tickClock(){
     const now = new Date();
     document.getElementById("clockNow").textContent = fmtTime(now);
-    document.getElementById("dateNow").textContent = fmtDateLong(now);
+    document.getElementById("dateNow").textContent = fmtDateLong(now) + " • WIB";
   }
   setInterval(tickClock, 1000);
 
@@ -560,7 +585,7 @@
 
   function todaysRecordsFor(teacherId){
     const dk = todayKey();
-    return logs.filter(l=>l.teacherId===teacherId && l.dateKey===dk);
+    return logs.filter(l=>l.teacherId===teacherId && recDateKey(l)===dk);
   }
 
   function refreshJenisOptions(){
@@ -576,6 +601,12 @@
     selectedJenis = null;
     document.getElementById("btnStartVerify").disabled = false;
     if(hasMasuk && hasPulang){
+      // Tampilkan JAM presensi yang bikin terkunci, supaya kalau terkunci keliru
+      // guru/owner langsung tahu itu data hari ini atau data kemarin.
+      const jamMasuk  = recs.filter(r=>r.type==="masuk").map(r=>fmtHM(new Date(r.time)))[0] || "-";
+      const jamPulang = recs.filter(r=>r.type==="pulang").map(r=>fmtHM(new Date(r.time)))[0] || "-";
+      document.getElementById("alreadyDoneMsg").textContent =
+        "✅ Presensi hari ini sudah lengkap (masuk " + jamMasuk + ", pulang " + jamPulang + " WIB).";
       document.getElementById("alreadyDoneMsg").classList.remove("hide");
       document.getElementById("btnStartVerify").disabled = true;
     } else {
@@ -666,14 +697,15 @@
     // sukses -> catat presensi
     const now = new Date();
     let status;
+    const menitSekarang = wibMinutes(now); // menit ke-n hari ini menurut WIB
     if(selectedJenis==="masuk"){
       const [h,m] = settings.workStart.split(":").map(Number);
-      const batas = new Date(now); batas.setHours(h, m + Number(settings.tolerance||0), 0, 0);
-      status = now > batas ? "Terlambat" : "Hadir";
+      const batas = h*60 + m + Number(settings.tolerance||0);
+      status = menitSekarang > batas ? "Terlambat" : "Hadir";
     } else {
       const [h,m] = settings.workEnd.split(":").map(Number);
-      const batas = new Date(now); batas.setHours(h, m, 0, 0);
-      status = now < batas ? "Pulang Cepat" : "Pulang";
+      const batas = h*60 + m;
+      status = menitSekarang < batas ? "Pulang Cepat" : "Pulang";
     }
 
     const rec = {
@@ -715,7 +747,7 @@
      ============================================================ */
   function renderRekap(){
     const dk = todayKey();
-    const today = logs.filter(l=>l.dateKey===dk).sort((a,b)=> new Date(b.time)-new Date(a.time));
+    const today = logs.filter(l=>recDateKey(l)===dk).sort((a,b)=> new Date(b.time)-new Date(a.time));
     const empty = document.getElementById("rekapEmpty");
     const table = document.getElementById("rekapTable");
     const body = document.getElementById("rekapBody");
@@ -893,7 +925,7 @@
     let csv = "Nama Guru,Jenis,Tanggal,Waktu,Status,Jarak(meter)\n";
     logs.forEach(r=>{
       const d = new Date(r.time);
-      csv += `"${r.teacherName}",${r.type==="masuk"?"Masuk":"Pulang"},${r.dateKey},${fmtTime(d)},${r.status},${r.distanceMeters||""}\n`;
+      csv += `"${r.teacherName}",${r.type==="masuk"?"Masuk":"Pulang"},${recDateKey(r)},${fmtTime(d)},${r.status},${r.distanceMeters||""}\n`;
     });
     const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
     const a = document.createElement("a");
